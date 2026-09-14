@@ -1,0 +1,84 @@
+name: Preparar branch Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+        env:
+          HUSKY: 0
+
+      - name: Gerar Prisma Client
+        run: npm run db:generate
+        env:
+          DATABASE_PROVIDER: postgresql
+
+      - name: Compilar Evolution API
+        run: npm run build
+
+      - name: Preparar arquivos leves
+        run: |
+          rm -rf /tmp/evolution-deploy
+          mkdir -p /tmp/evolution-deploy
+
+          cp -r dist /tmp/evolution-deploy/dist
+          cp package.json /tmp/evolution-deploy/package.json
+          cp package-lock.json /tmp/evolution-deploy/package-lock.json
+          cp -r prisma /tmp/evolution-deploy/prisma
+          cp runWithProvider.js /tmp/evolution-deploy/runWithProvider.js
+
+          if [ -d "public" ]; then
+            cp -r public /tmp/evolution-deploy/public
+          fi
+
+          if [ -f ".nvmrc" ]; then
+            cp .nvmrc /tmp/evolution-deploy/.nvmrc
+          fi
+
+          # Remove source maps pesados
+          find /tmp/evolution-deploy/dist -type f -name "*.map" -delete
+
+          # Remove versão ESM duplicada
+          find /tmp/evolution-deploy/dist -type f -name "*.mjs" -delete
+
+          echo "Tamanho final do deploy:"
+          du -sh /tmp/evolution-deploy
+
+      - name: Criar branch deploy limpa
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout --orphan deploy-temp
+
+          git rm -rf . || true
+          git clean -fdx
+
+          cp -r /tmp/evolution-deploy/. .
+
+          git add -f .
+
+          git commit -m "deploy: versão limpa para produção"
+
+          git branch -M deploy
+
+          git push origin deploy --force
