@@ -45,6 +45,9 @@ jobs:
           cp package-lock.json /tmp/evolution-deploy/package-lock.json
           cp -r prisma /tmp/evolution-deploy/prisma
           cp runWithProvider.js /tmp/evolution-deploy/runWithProvider.js
+                    cat > /tmp/evolution-deploy/index.js <<'EOF'
+          require('./dist/main.js');
+          EOF
 
           if [ -d "public" ]; then
             cp -r public /tmp/evolution-deploy/public
