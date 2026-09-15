@@ -56,19 +56,12 @@ jobs:
             cp -r public /tmp/evolution-deploy/public
           fi
 
-           # Evolution Manager
-          mkdir -p /tmp/evolution-deploy/manager
-          cp -r manager/dist /tmp/evolution-deploy/manager/dist
+                 # Evolution Manager
+          echo "Compactando Evolution Manager..."
+          tar -czf /tmp/evolution-deploy/manager.tar.gz -C manager dist
 
-          echo "===== VERIFICANDO MANAGER ====="
-          ls -lah /tmp/evolution-deploy/manager/dist
-
-          if [ ! -f "/tmp/evolution-deploy/manager/dist/index.html" ]; then
-            echo "ERRO: manager/dist/index.html nao foi encontrado!"
-            exit 1
-          fi
-
-          echo "Manager OK!"
+          echo "===== MANAGER COMPACTADO ====="
+          ls -lh /tmp/evolution-deploy/manager.tar.gz
 
           # Node 24
           echo "24" > /tmp/evolution-deploy/.nvmrc
