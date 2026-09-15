@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar repositório
+      - name: Baixar repositorio
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -22,7 +22,7 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Instalar dependências
+      - name: Instalar dependencias
         run: npm ci
         env:
           HUSKY: 0
@@ -35,51 +35,53 @@ jobs:
       - name: Compilar Evolution API
         run: npm run build
 
-      - name: Preparar deploy com dependencias
+      - name: Preparar deploy leve
         run: |
           rm -rf /tmp/evolution-deploy
           mkdir -p /tmp/evolution-deploy
 
-          # Copia a aplicacao compilada
+          # Aplicacao compilada
           cp dist/main.js /tmp/evolution-deploy/index.js
 
-          # Arquivos necessarios
+          # Arquivos necessarios para instalar e executar
           cp package.json /tmp/evolution-deploy/package.json
           cp package-lock.json /tmp/evolution-deploy/package-lock.json
-          cp -r prisma /tmp/evolution-deploy/prisma
           cp runWithProvider.js /tmp/evolution-deploy/runWithProvider.js
 
+          # Prisma
+          cp -r prisma /tmp/evolution-deploy/prisma
+
+          # Arquivos publicos
           if [ -d "public" ]; then
             cp -r public /tmp/evolution-deploy/public
           fi
+
+          # Manager da Evolution
           if [ -d "manager" ]; then
             cp -r manager /tmp/evolution-deploy/manager
           fi
 
-          # Prisma ja gerado pelo GitHub Actions
-          npm prune --omit=dev
+          # Node 24
+          echo "24" > /tmp/evolution-deploy/.nvmrc
 
-          # Copia dependencias prontas
-          cp -r node_modules /tmp/evolution-deploy/node_modules
+          echo "===== CONTEUDO DO DEPLOY ====="
+          ls -lah /tmp/evolution-deploy
 
-          echo "Tamanho final do deploy:"
+          echo "===== TAMANHO ====="
           du -sh /tmp/evolution-deploy
-      - name: Criar branch deploy limpa
+
+      - name: Criar branch deploy
         run: |
+          cd /tmp/evolution-deploy
+
+          git init
+          git checkout -b deploy
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git checkout --orphan deploy-temp
+          git add .
+          git commit -m "deploy: versao leve sem node_modules"
 
-          git rm -rf . || true
-          git clean -fdx
-
-          cp -r /tmp/evolution-deploy/. .
-
-          git add -f .
-
-          git commit -m "deploy: versão limpa para produção"
-
-          git branch -M deploy
-
-          git push origin deploy --force
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push --force origin deploy
