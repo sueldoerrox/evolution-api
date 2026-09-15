@@ -35,36 +35,32 @@ jobs:
       - name: Compilar Evolution API
         run: npm run build
 
-      - name: Preparar arquivos leves
+      - name: Preparar deploy com dependencias
         run: |
           rm -rf /tmp/evolution-deploy
           mkdir -p /tmp/evolution-deploy
 
-          cp -r dist /tmp/evolution-deploy/dist
+          # Copia a aplicacao compilada
+          cp dist/main.js /tmp/evolution-deploy/index.js
+
+          # Arquivos necessarios
           cp package.json /tmp/evolution-deploy/package.json
           cp package-lock.json /tmp/evolution-deploy/package-lock.json
           cp -r prisma /tmp/evolution-deploy/prisma
           cp runWithProvider.js /tmp/evolution-deploy/runWithProvider.js
-          cp dist/main.js /tmp/evolution-deploy/index.js
-                
 
           if [ -d "public" ]; then
             cp -r public /tmp/evolution-deploy/public
           fi
 
-          if [ -f ".nvmrc" ]; then
-            cp .nvmrc /tmp/evolution-deploy/.nvmrc
-          fi
+          # Prisma ja gerado pelo GitHub Actions
+          npm prune --omit=dev
 
-          # Remove source maps pesados
-          find /tmp/evolution-deploy/dist -type f -name "*.map" -delete
-
-          # Remove versão ESM duplicada
-          find /tmp/evolution-deploy/dist -type f -name "*.mjs" -delete
+          # Copia dependencias prontas
+          cp -r node_modules /tmp/evolution-deploy/node_modules
 
           echo "Tamanho final do deploy:"
           du -sh /tmp/evolution-deploy
-
       - name: Criar branch deploy limpa
         run: |
           git config user.name "github-actions[bot]"
