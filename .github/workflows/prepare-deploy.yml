@@ -52,6 +52,9 @@ jobs:
           if [ -d "public" ]; then
             cp -r public /tmp/evolution-deploy/public
           fi
+          if [ -d "manager" ]; then
+            cp -r manager /tmp/evolution-deploy/manager
+          fi
 
           # Prisma ja gerado pelo GitHub Actions
           npm prune --omit=dev
